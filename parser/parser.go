@@ -14,6 +14,19 @@ const (
 	INTEXT
 )
 
+func (i IntExt) String() string {
+	switch i {
+	case INT:
+		return "INT"
+	case EXT:
+		return "EXT"
+	case INTEXT:
+		return "INT/EXT"
+	default:
+		return "ERR"
+	}
+}
+
 type SceneHeading struct {
 	IntOrExt IntExt
 	Location string
@@ -22,13 +35,18 @@ type SceneHeading struct {
 }
 
 func (s *SceneHeading) String() string {
-	return fmt.Sprintf("%d\n%s\n%t\n%s\n", s.IntOrExt, s.Location, s.HasTime, s.Time)
+	return fmt.Sprintf("%s\n%s\n%t\n%s\n", s.IntOrExt.String(), s.Location, s.HasTime, s.Time)
 }
 
-// type Scene struct {
-// 	Heading  SceneHeading
-// 	Contents []Lexeme
-// }
+type Scene struct {
+	Heading  SceneHeading
+	Contents []Lexeme
+}
+
+func (s *Scene) PrintScene() {
+	fmt.Printf("Scene:\n%s\n\n", s.Heading.String())
+	PrintLexemes(s.Contents)
+}
 
 // type Screenplay struct {
 // 	Scenes []Scene
@@ -39,28 +57,30 @@ func (s *SceneHeading) String() string {
 
 // func ParseScreenplay(lexemes []Lexeme) {}
 
-func ParseSceneHeading(lexemes []Lexeme) (SceneHeading, []Lexeme) {
+func parseSceneHeading(lexemes []Lexeme) (SceneHeading, []Lexeme) {
 	scene := SceneHeading{}
 	var remainingLexemes []Lexeme
+	var sceneLexemes []Lexeme
 	// consume opening pipe symbol
 	lexemes = lexemes[1:]
 	for i, lex := range lexemes {
 		if lex.Typ == Dash {
 			scene.HasTime = true
 		} else if lex.Typ == VertBar {
-			remainingLexemes = lexemes[0:(i + 1)]
+			sceneLexemes = lexemes[0:(i + 1)]
+			remainingLexemes = lexemes[(i + 1):]
 			break
 		}
 	}
-	scene.IntOrExt, remainingLexemes[0] = parseIntExtKeyword(remainingLexemes[0])
-	scene.Location = remainingLexemes[0].Value
+	scene.IntOrExt, sceneLexemes[0] = parseIntExtKeyword(sceneLexemes[0])
+	scene.Location = sceneLexemes[0].Value
 	// if the header has a time, we know there's a dash in between the text [0] and the time
 	if scene.HasTime {
-		scene.Time = remainingLexemes[2].Value
-		return scene, remainingLexemes[4:]
+		scene.Time = strings.ToUpper(sceneLexemes[2].Value)
+		return scene, remainingLexemes
 	} else {
 		scene.Time = ""
-		return scene, remainingLexemes[2:]
+		return scene, remainingLexemes
 	}
 
 }
@@ -83,6 +103,24 @@ func parseIntExtKeyword(lex Lexeme) (IntExt, Lexeme) {
 	}
 }
 
+func ParseScene(lexemes []Lexeme) (Scene, []Lexeme) {
+	var scene Scene
+	var remainingLexemes []Lexeme
+	scene.Heading, remainingLexemes = parseSceneHeading(lexemes)
+	for i, lexeme := range remainingLexemes {
+		if lexeme.Typ == VertBar {
+			scene.Contents = remainingLexemes[0:i]
+			remainingLexemes = remainingLexemes[i:]
+			break
+		} else if lexeme.Typ == EOF {
+			scene.Contents = remainingLexemes[0:i]
+			remainingLexemes = nil
+		}
+	}
+
+	return scene, remainingLexemes
+}
+
 func LexAll(filename string) []Lexeme {
 	dat, err := os.ReadFile(filename)
 	if err != nil {
@@ -91,11 +129,11 @@ func LexAll(filename string) []Lexeme {
 		fmt.Println("Read file")
 	}
 	lexemes := lex(string(dat))
-	for _, lex := range lexemes {
-		PrintLexeme(lex)
-	}
-	heading, _ := ParseSceneHeading(lexemes)
-	fmt.Printf("%s", heading)
+	// for _, lex := range lexemes {
+	// 	PrintLexeme(lex)
+	// }
+	scene, _ := ParseScene(lexemes)
+	scene.PrintScene()
 
 	return lexemes
 

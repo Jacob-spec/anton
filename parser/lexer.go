@@ -74,6 +74,12 @@ func PrintLexeme(l Lexeme) {
 	}
 }
 
+func PrintLexemes(lexemes []Lexeme) {
+	for _, lex := range lexemes {
+		PrintLexeme(lex)
+	}
+}
+
 func (l *lexer) emit(t LexemeType) {
 	value := l.input[l.start:l.pos]
 	l.lexemes = append(l.lexemes, Lexeme{t, value})
@@ -114,6 +120,7 @@ func cleanLexemes(l []Lexeme) []Lexeme {
 			clean = append(clean, lex)
 		}
 	}
+	clean = append(clean, Lexeme{Typ: EOF, Value: "EOF"})
 	return clean
 }
 
