@@ -5,10 +5,10 @@ import (
 	"strings"
 )
 
-type lexemeType int
+type LexemeType int
 
 const (
-	Text    lexemeType = iota
+	Text    LexemeType = iota
 	VertBar            // vertical bar character
 	LParenthesis
 	RParenthesis
@@ -28,55 +28,55 @@ type lexError struct {
 	message string
 }
 
-type lexeme struct {
-	typ   lexemeType
-	value string
+type Lexeme struct {
+	Typ   LexemeType
+	Value string
 }
 type lexer struct {
 	input   string // the text being lexed
-	start   int    // start position of current lexeme
+	start   int    // start position of current Lexeme
 	pos     int    // current position in the input
-	lexemes []lexeme
+	lexemes []Lexeme
 }
 
-func PrintLexeme(l lexeme) {
-	switch l.typ {
+func PrintLexeme(l Lexeme) {
+	switch l.Typ {
 	case Text:
-		fmt.Printf("Text(%s)\n", l.value)
+		fmt.Printf("Text(%s)\n", l.Value)
 	case Err:
-		fmt.Printf("Err(%s)\n", l.value)
+		fmt.Printf("Err(%s)\n", l.Value)
 	case EOF:
 		fmt.Println("EOF")
 	case Null:
 		fmt.Println("Null")
 	case LParenthesis:
-		fmt.Printf("LParenthesis(%s)\n", l.value)
+		fmt.Printf("LParenthesis(%s)\n", l.Value)
 	case RParenthesis:
-		fmt.Printf("RParenthesis(%s)\n", l.value)
+		fmt.Printf("RParenthesis(%s)\n", l.Value)
 	case LSquareBracket:
-		fmt.Printf("LSquareBracket(%s)\n", l.value)
+		fmt.Printf("LSquareBracket(%s)\n", l.Value)
 	case RSquareBracket:
-		fmt.Printf("RSquareBracket(%s)\n", l.value)
+		fmt.Printf("RSquareBracket(%s)\n", l.Value)
 	case LCurlyBracket:
-		fmt.Printf("LCurlyBracket(%s)\n", l.value)
+		fmt.Printf("LCurlyBracket(%s)\n", l.Value)
 	case RCurlyBracket:
-		fmt.Printf("RCurlyBracket(%s)\n", l.value)
+		fmt.Printf("RCurlyBracket(%s)\n", l.Value)
 	case VertBar:
-		fmt.Printf("VertBar(%s)\n", l.value)
+		fmt.Printf("VertBar(%s)\n", l.Value)
 	case Equals:
-		fmt.Printf("Equals(%s)\n", l.value)
+		fmt.Printf("Equals(%s)\n", l.Value)
 	case Dash:
-		fmt.Printf("Dash(%s)\n", l.value)
+		fmt.Printf("Dash(%s)\n", l.Value)
 	case Plus:
-		fmt.Printf("Plus(%s)\n", l.value)
+		fmt.Printf("Plus(%s)\n", l.Value)
 	default:
-		fmt.Printf("%s\n", l.value)
+		fmt.Printf("%s\n", l.Value)
 	}
 }
 
-func (l *lexer) emit(t lexemeType) {
+func (l *lexer) emit(t LexemeType) {
 	value := l.input[l.start:l.pos]
-	l.lexemes = append(l.lexemes, lexeme{t, value})
+	l.lexemes = append(l.lexemes, Lexeme{t, value})
 	l.start = l.pos
 	l.pos += 1
 }
@@ -90,10 +90,10 @@ func (l *lexer) current() (byte, *lexError) {
 }
 
 // currently lexText is doing the job of lex. Fix this.
-func lex(input string) []lexeme {
+func lex(input string) []Lexeme {
 	l := lexer{
 		input:   input,
-		lexemes: make([]lexeme, 0),
+		lexemes: make([]Lexeme, 0),
 		pos:     0,
 		start:   0,
 	}
@@ -104,13 +104,13 @@ func lex(input string) []lexeme {
 	return cleanedLex
 }
 
-func cleanLexemes(l []lexeme) []lexeme {
-	clean := make([]lexeme, 0)
+func cleanLexemes(l []Lexeme) []Lexeme {
+	clean := make([]Lexeme, 0)
 	for _, lex := range l {
-		if lex.typ != Text {
+		if lex.Typ != Text {
 			clean = append(clean, lex)
-		} else if len(strings.TrimSpace(lex.value)) > 1 {
-			lex.value = strings.TrimSpace(lex.value)
+		} else if len(strings.TrimSpace(lex.Value)) > 1 {
+			lex.Value = strings.TrimSpace(lex.Value)
 			clean = append(clean, lex)
 		}
 	}
@@ -140,7 +140,7 @@ func (l *lexer) lexText() {
 	}
 }
 
-func isSpecialCharacter(character byte) lexemeType {
+func isSpecialCharacter(character byte) LexemeType {
 	switch character {
 	case '|':
 		return VertBar
