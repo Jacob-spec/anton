@@ -1,7 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"github.com/Jacob-spec/anton/parser"
+)
 
 func main() {
-	fmt.Printf("hello world")
+	parser.LexAll("/Users/jacobstoner/Code/Go/anton/misc/script.an")
 }
