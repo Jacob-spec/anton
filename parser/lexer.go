@@ -19,6 +19,8 @@ const (
 	Equals
 	Dash
 	Plus
+	Colon
+	Tilde
 	Null
 	Err
 	EOF
@@ -50,25 +52,29 @@ func PrintLexeme(l Lexeme) {
 	case Null:
 		fmt.Println("Null")
 	case LParenthesis:
-		fmt.Printf("LParenthesis(%s)\n", l.Value)
+		fmt.Println("LParenthesis")
 	case RParenthesis:
-		fmt.Printf("RParenthesis(%s)\n", l.Value)
+		fmt.Println("RParenthesis")
 	case LSquareBracket:
-		fmt.Printf("LSquareBracket(%s)\n", l.Value)
+		fmt.Println("LSquareBracket")
 	case RSquareBracket:
-		fmt.Printf("RSquareBracket(%s)\n", l.Value)
+		fmt.Println("RSquareBracket")
 	case LCurlyBracket:
-		fmt.Printf("LCurlyBracket(%s)\n", l.Value)
+		fmt.Println("LCurlyBracket")
 	case RCurlyBracket:
-		fmt.Printf("RCurlyBracket(%s)\n", l.Value)
+		fmt.Println("RCurlyBracket")
 	case VertBar:
-		fmt.Printf("VertBar(%s)\n", l.Value)
+		fmt.Println("VertBar")
 	case Equals:
-		fmt.Printf("Equals(%s)\n", l.Value)
+		fmt.Println("Equals")
 	case Dash:
-		fmt.Printf("Dash(%s)\n", l.Value)
+		fmt.Println("Dash")
 	case Plus:
-		fmt.Printf("Plus(%s)\n", l.Value)
+		fmt.Println("Plus")
+	case Colon:
+		fmt.Println("Colon")
+	case Tilde:
+		fmt.Println("Tilde")
 	default:
 		fmt.Printf("%s\n", l.Value)
 	}
@@ -95,7 +101,6 @@ func (l *lexer) current() (byte, *lexError) {
 	}
 }
 
-// currently lexText is doing the job of lex. Fix this.
 func lex(input string) []Lexeme {
 	l := lexer{
 		input:   input,
@@ -169,6 +174,10 @@ func isSpecialCharacter(character byte) LexemeType {
 		return Dash
 	case '+':
 		return Plus
+	case ':':
+		return Colon
+	case '~':
+		return Tilde
 	default:
 		return Err
 	}

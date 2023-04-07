@@ -1,61 +1,68 @@
 package parser
 
 import (
-	"fmt"
-	"os"
 	"strings"
 )
 
-type IntExt int
+func ParseScreenplay(lexemes []Lexeme) Screenplay {
+	var screenplay Screenplay
+	var scene Scene
+	screenplay.Metadata, lexemes = parseScreenplayMetadata(lexemes)
 
-const (
-	INT = iota
-	EXT
-	INTEXT
-)
-
-func (i IntExt) String() string {
-	switch i {
-	case INT:
-		return "INT"
-	case EXT:
-		return "EXT"
-	case INTEXT:
-		return "INT/EXT"
-	default:
-		return "ERR"
+	for {
+		scene, lexemes = ParseScene(lexemes)
+		screenplay.Scenes = append(screenplay.Scenes, scene)
+		if lexemes == nil {
+			break
+		}
 	}
+
+	return screenplay
 }
 
-type SceneHeading struct {
-	IntOrExt IntExt
-	Location string
-	HasTime  bool
-	Time     string
+func parseScreenplayMetadata(lexemes []Lexeme) ([]Metadata, []Lexeme) {
+	var tildeIndices []int
+	metadata := make([]Metadata, 0)
+
+	for i, lexeme := range lexemes {
+		if lexeme.Typ == Tilde {
+			tildeIndices = append(tildeIndices, i)
+		}
+	}
+
+	for i := 0; (i + 1) < len(tildeIndices); i += 1 {
+		// eliminates problem of metadata entries only having a newline between them
+		if len(lexemes[tildeIndices[i]:tildeIndices[i+1]]) > 1 {
+			metadata = append(metadata, parseMetadataPair(lexemes[tildeIndices[i]:tildeIndices[i+1]]))
+		} else {
+			continue
+		}
+	}
+	// + 1 is to consume the closing tilde and return only the lexemes of the actual screenplay
+	return metadata, lexemes[tildeIndices[len(tildeIndices)-1]+1:]
 }
 
-func (s *SceneHeading) String() string {
-	return fmt.Sprintf("%s\n%s\n%t\n%s\n", s.IntOrExt.String(), s.Location, s.HasTime, s.Time)
+// not at all rigorous, and has bad error checking
+func parseMetadataPair(lexemes []Lexeme) Metadata {
+	var data Metadata
+	// consume opening tilde
+	lexemes = lexemes[1:]
+
+	// finds the key
+	if lexemes[0].Typ != Text {
+		panic(1)
+	} else {
+		data.Key = lexemes[0].Value
+		lexemes = lexemes[1:]
+	}
+	if lexemes[0].Typ != Colon {
+		panic(1)
+	} else {
+		data.Value = lexemes[1].Value
+	}
+	return data
+
 }
-
-type Scene struct {
-	Heading  SceneHeading
-	Contents []Lexeme
-}
-
-func (s *Scene) PrintScene() {
-	fmt.Printf("Scene:\n%s\n\n", s.Heading.String())
-	PrintLexemes(s.Contents)
-}
-
-// type Screenplay struct {
-// 	Scenes []Scene
-// 	Author string
-// 	Year   int
-// 	Genre  string
-// }
-
-// func ParseScreenplay(lexemes []Lexeme) {}
 
 func parseSceneHeading(lexemes []Lexeme) (SceneHeading, []Lexeme) {
 	scene := SceneHeading{}
@@ -109,11 +116,11 @@ func ParseScene(lexemes []Lexeme) (Scene, []Lexeme) {
 	scene.Heading, remainingLexemes = parseSceneHeading(lexemes)
 	for i, lexeme := range remainingLexemes {
 		if lexeme.Typ == VertBar {
-			scene.Contents = remainingLexemes[0:i]
+			scene.Contents = parseSceneContents(remainingLexemes[0:i])
 			remainingLexemes = remainingLexemes[i:]
 			break
 		} else if lexeme.Typ == EOF {
-			scene.Contents = remainingLexemes[0:i]
+			scene.Contents = parseSceneContents(remainingLexemes[0:i])
 			remainingLexemes = nil
 		}
 	}
@@ -121,20 +128,86 @@ func ParseScene(lexemes []Lexeme) (Scene, []Lexeme) {
 	return scene, remainingLexemes
 }
 
-func LexAll(filename string) []Lexeme {
-	dat, err := os.ReadFile(filename)
-	if err != nil {
-		panic(err)
-	} else {
-		fmt.Println("Read file")
+func parseSceneContents(lexemes []Lexeme) []SceneItem {
+	items := make([]SceneItem, 0)
+
+	for {
+		if len(lexemes) <= 0 {
+			break
+		}
+		switch lexemes[0].Typ {
+		case Equals:
+			var dUnit DialogueUnit
+			dUnit, lexemes = parseDialogueUnit(lexemes)
+			items = append(items, dUnit)
+		case LSquareBracket:
+			var action Action
+			action, lexemes = parseAction(lexemes)
+			items = append(items, action)
+		case Dash:
+			var shot Shot
+			shot, lexemes = parseShot(lexemes)
+			items = append(items, shot)
+		case Plus:
+			var transition Transition
+			transition, lexemes = parseTransition(lexemes)
+			items = append(items, transition)
+		}
+		// consume closing character of whatever scene item was parsed
+		lexemes = lexemes[1:]
 	}
-	lexemes := lex(string(dat))
-	// for _, lex := range lexemes {
-	// 	PrintLexeme(lex)
-	// }
-	scene, _ := ParseScene(lexemes)
-	scene.PrintScene()
+
+	return items
+}
+
+func parseDialogueUnit(lexemes []Lexeme) (DialogueUnit, []Lexeme) {
+	var dUnit DialogueUnit
+	// consume opening equals signs
+	lexemes = lexemes[1:]
+	dUnit.Character.Name = lexemes[0].Value
+	if lexemes[1].Typ == LParenthesis {
+		dUnit.HasParenthetical = true
+		dUnit.Parenthetical.Value = lexemes[2].Value
+		dUnit.Dialogue.Value = lexemes[5].Value
+		return dUnit, lexemes[6:]
+	} else if lexemes[1].Typ == LCurlyBracket {
+		dUnit.HasParenthetical = false
+		dUnit.Parenthetical.Value = ""
+		dUnit.Dialogue.Value = lexemes[2].Value
+		return dUnit, lexemes[3:]
+	}
+
+	return dUnit, nil
+}
+
+func parseAction(lexemes []Lexeme) (Action, []Lexeme) {
+	// consume opening square bracket
+	lexemes = lexemes[1:]
+	action := Action{Value: lexemes[0].Value}
+	return action, lexemes[1:]
+}
+
+func parseShot(lexemes []Lexeme) (Shot, []Lexeme) {
+	// consume opening dash
+	lexemes = lexemes[1:]
+	shot := Shot{Value: lexemes[0].Value}
+	return shot, lexemes[1:]
+}
+
+func parseTransition(lexemes []Lexeme) (Transition, []Lexeme) {
+	// consue opening plus sign
+	lexemes = lexemes[1:]
+	transition := Transition{Value: lexemes[0].Value}
+	return transition, lexemes[1:]
+}
+
+func Parse(contents string) []Lexeme {
+	lexemes := lex(contents)
+	s := ParseScreenplay(lexemes)
+	PrintMetadata(s.Metadata)
+	for _, scene := range s.Scenes {
+		scene.PrintScene()
+	}
 
 	return lexemes
-
 }

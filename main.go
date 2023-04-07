@@ -1,9 +1,11 @@
 package main
 
 import (
+	"github.com/Jacob-spec/anton/cli"
 	"github.com/Jacob-spec/anton/parser"
 )
 
 func main() {
-	parser.LexAll("/Users/jacobstoner/Code/Go/anton/misc/script.an")
+	fileContents := cli.GetScreenplayContents("/Users/jacobstoner/Code/Go/anton/misc/script.an")
+	parser.Parse(fileContents)
 }
