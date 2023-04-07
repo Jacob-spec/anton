@@ -102,11 +102,11 @@ func parseIntExtKeyword(lex Lexeme) (IntExt, Lexeme) {
 	s = strings.Join(strWords[1:], " ")
 
 	if len(intExt) > 1 {
-		return INTEXT, Lexeme{Text, s}
+		return INTEXT, Lexeme{Text, s, lex.LineNumber}
 	} else if strings.Contains(intExt[0], "INT") {
-		return INT, Lexeme{Text, s}
+		return INT, Lexeme{Text, s, lex.LineNumber}
 	} else {
-		return EXT, Lexeme{Text, s}
+		return EXT, Lexeme{Text, s, lex.LineNumber}
 	}
 }
 
@@ -164,6 +164,7 @@ func parseDialogueUnit(lexemes []Lexeme) (DialogueUnit, []Lexeme) {
 	var dUnit DialogueUnit
 	// consume opening equals signs
 	lexemes = lexemes[1:]
+
 	dUnit.Character.Name = lexemes[0].Value
 	if lexemes[1].Typ == LParenthesis {
 		dUnit.HasParenthetical = true
@@ -205,9 +206,6 @@ func Parse(contents string) []Lexeme {
 	lexemes := lex(contents)
 	s := ParseScreenplay(lexemes)
 	PrintMetadata(s.Metadata)
-	for _, scene := range s.Scenes {
-		scene.PrintScene()
-	}
 
 	return lexemes
 }

@@ -69,6 +69,11 @@ type Transition struct {
 	Value string
 }
 
+type ParseErr struct {
+	Message    string
+	LineNumber int
+}
+
 // debugging
 func (i IntExt) String() string {
 	switch i {
