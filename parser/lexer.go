@@ -31,22 +31,24 @@ type lexError struct {
 }
 
 type Lexeme struct {
-	Typ        LexemeType
-	Value      string
-	LineNumber int
+	Typ          LexemeType
+	Value        string
+	LineNumber   int
+	ColumnNumber int
 }
 type lexer struct {
-	input      string // the text being lexed
-	start      int    // start position of current Lexeme
-	pos        int    // current position in the input
-	lineNumber int
-	lexemes    []Lexeme
+	input        string // the text being lexed
+	start        int    // start position of current Lexeme
+	pos          int    // current position in the input
+	lineNumber   int
+	columnNumber int
+	lexemes      []Lexeme
 }
 
 func PrintLexeme(l Lexeme) {
 	switch l.Typ {
 	case Text:
-		fmt.Printf("Text(%s, %d)\n", l.Value, l.LineNumber)
+		fmt.Printf("Text(%s, %d, %d)\n", l.Value, l.LineNumber, l.ColumnNumber)
 	case Err:
 		fmt.Printf("Err(%s)\n", l.Value)
 	case EOF:
@@ -54,29 +56,29 @@ func PrintLexeme(l Lexeme) {
 	case Null:
 		fmt.Println("Null")
 	case LParenthesis:
-		fmt.Printf("LParenthesis, %d\n", l.LineNumber)
+		fmt.Printf("LParenthesis, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case RParenthesis:
-		fmt.Printf("RParenthesis, %d\n", l.LineNumber)
+		fmt.Printf("RParenthesis, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case LSquareBracket:
-		fmt.Printf("LSquareBracket, %d\n", l.LineNumber)
+		fmt.Printf("LSquareBracket, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case RSquareBracket:
-		fmt.Printf("RSquareBracket, %d\n", l.LineNumber)
+		fmt.Printf("RSquareBracket, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case LCurlyBracket:
-		fmt.Printf("LCurlyBracket, %d\n", l.LineNumber)
+		fmt.Printf("LCurlyBracket, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case RCurlyBracket:
-		fmt.Printf("RCurlyBracket, %d\n", l.LineNumber)
+		fmt.Printf("RCurlyBracket, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case VertBar:
-		fmt.Printf("VertBar, %d\n", l.LineNumber)
+		fmt.Printf("VertBar, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case Equals:
-		fmt.Printf("Equals, %d\n", l.LineNumber)
+		fmt.Printf("Equals, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case Dash:
-		fmt.Printf("Dash, %d\n", l.LineNumber)
+		fmt.Printf("Dash, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case Plus:
-		fmt.Printf("Plus, %d\n", l.LineNumber)
+		fmt.Printf("Plus, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case Colon:
-		fmt.Printf("Colon, %d\n", l.LineNumber)
+		fmt.Printf("Colon, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	case Tilde:
-		fmt.Printf("Tilde, %d\n", l.LineNumber)
+		fmt.Printf("Tilde, %d, %d\n", l.LineNumber, l.ColumnNumber)
 	default:
 		fmt.Printf("%s\n", l.Value)
 	}
@@ -90,14 +92,16 @@ func PrintLexemes(lexemes []Lexeme) {
 
 func (l *lexer) emit(t LexemeType) {
 	value := l.input[l.start:l.pos]
+	l.columnNumber += len(value)
 
 	for _, char := range value {
 		if char == '\n' {
 			l.lineNumber += 1
+			l.columnNumber = 1
 		}
 	}
 
-	l.lexemes = append(l.lexemes, Lexeme{t, value, l.lineNumber})
+	l.lexemes = append(l.lexemes, Lexeme{t, value, l.lineNumber, l.columnNumber})
 	l.start = l.pos
 	l.pos += 1
 }
@@ -112,11 +116,12 @@ func (l *lexer) current() (byte, *lexError) {
 
 func lex(input string) []Lexeme {
 	l := lexer{
-		input:      input,
-		lexemes:    make([]Lexeme, 0),
-		lineNumber: 1,
-		pos:        0,
-		start:      0,
+		input:        input,
+		lexemes:      make([]Lexeme, 0),
+		lineNumber:   1,
+		columnNumber: 1,
+		pos:          0,
+		start:        0,
 	}
 
 	l.lexText()

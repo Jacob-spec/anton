@@ -102,11 +102,11 @@ func parseIntExtKeyword(lex Lexeme) (IntExt, Lexeme) {
 	s = strings.Join(strWords[1:], " ")
 
 	if len(intExt) > 1 {
-		return INTEXT, Lexeme{Text, s, lex.LineNumber}
+		return INTEXT, Lexeme{Text, s, lex.LineNumber, lex.ColumnNumber}
 	} else if strings.Contains(intExt[0], "INT") {
-		return INT, Lexeme{Text, s, lex.LineNumber}
+		return INT, Lexeme{Text, s, lex.LineNumber, lex.ColumnNumber}
 	} else {
-		return EXT, Lexeme{Text, s, lex.LineNumber}
+		return EXT, Lexeme{Text, s, lex.LineNumber, lex.ColumnNumber}
 	}
 }
 
