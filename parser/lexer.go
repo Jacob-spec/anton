@@ -45,48 +45,48 @@ type lexer struct {
 	lexemes      []Lexeme
 }
 
-func PrintLexeme(l Lexeme) {
-	switch l.Typ {
+func (l LexemeType) String() string {
+	switch l {
 	case Text:
-		fmt.Printf("Text(%s, %d, %d)\n", l.Value, l.LineNumber, l.ColumnNumber)
+		return "Text"
 	case Err:
-		fmt.Printf("Err(%s)\n", l.Value)
+		return "Err"
 	case EOF:
-		fmt.Println("EOF")
+		return "EOF"
 	case Null:
-		fmt.Println("Null")
+		return "Null"
 	case LParenthesis:
-		fmt.Printf("LParenthesis, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return "("
 	case RParenthesis:
-		fmt.Printf("RParenthesis, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return ")"
 	case LSquareBracket:
-		fmt.Printf("LSquareBracket, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return "["
 	case RSquareBracket:
-		fmt.Printf("RSquareBracket, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return "]"
 	case LCurlyBracket:
-		fmt.Printf("LCurlyBracket, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return "{"
 	case RCurlyBracket:
-		fmt.Printf("RCurlyBracket, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return "}"
 	case VertBar:
-		fmt.Printf("VertBar, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return "|"
 	case Equals:
-		fmt.Printf("Equals, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return "="
 	case Dash:
-		fmt.Printf("Dash, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return "-"
 	case Plus:
-		fmt.Printf("Plus, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return "+"
 	case Colon:
-		fmt.Printf("Colon, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return ":"
 	case Tilde:
-		fmt.Printf("Tilde, %d, %d\n", l.LineNumber, l.ColumnNumber)
+		return "~"
 	default:
-		fmt.Printf("%s\n", l.Value)
+		return "ERRRRR"
 	}
 }
 
 func PrintLexemes(lexemes []Lexeme) {
 	for _, lex := range lexemes {
-		PrintLexeme(lex)
+		fmt.Println(lex.Typ.String())
 	}
 }
 
@@ -126,7 +126,6 @@ func lex(input string) []Lexeme {
 
 	l.lexText()
 	cleanedLex := cleanLexemes(l.lexemes)
-	PrintLexemes(cleanedLex)
 
 	return cleanedLex
 }

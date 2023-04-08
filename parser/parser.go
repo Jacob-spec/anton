@@ -11,6 +11,7 @@ func ParseScreenplay(lexemes []Lexeme) Screenplay {
 
 	for {
 		scene, lexemes = ParseScene(lexemes)
+		scene.PrintScene()
 		screenplay.Scenes = append(screenplay.Scenes, scene)
 		if lexemes == nil {
 			break
@@ -42,24 +43,16 @@ func parseScreenplayMetadata(lexemes []Lexeme) ([]Metadata, []Lexeme) {
 	return metadata, lexemes[tildeIndices[len(tildeIndices)-1]+1:]
 }
 
-// not at all rigorous, and has bad error checking
+// parseScreenplayMetadata takes care of closing tilde bc this func
+// only returns the Metadata struct, not that plus remaining lexemes
 func parseMetadataPair(lexemes []Lexeme) Metadata {
 	var data Metadata
 	// consume opening tilde
 	lexemes = lexemes[1:]
 
-	// finds the key
-	if lexemes[0].Typ != Text {
-		panic(1)
-	} else {
-		data.Key = lexemes[0].Value
-		lexemes = lexemes[1:]
-	}
-	if lexemes[0].Typ != Colon {
-		panic(1)
-	} else {
-		data.Value = lexemes[1].Value
-	}
+	assertLexemeTypes(lexemes, []LexemeType{Text, Colon, Text})
+	data.Key = lexemes[0].Value
+	data.Value = lexemes[2].Value
 	return data
 
 }
@@ -92,7 +85,7 @@ func parseSceneHeading(lexemes []Lexeme) (SceneHeading, []Lexeme) {
 
 }
 
-// returns the int/ext attributre and the rest of the text lexeme
+// returns the int/ext attribute and the rest of the text lexeme
 func parseIntExtKeyword(lex Lexeme) (IntExt, Lexeme) {
 	s := strings.ToUpper(lex.Value)
 	// Seperates the int/ext portion from the rest of scene header
@@ -100,6 +93,11 @@ func parseIntExtKeyword(lex Lexeme) (IntExt, Lexeme) {
 	// checks if it's an int/ext scene
 	intExt := strings.Split(strWords[0], "/")
 	s = strings.Join(strWords[1:], " ")
+
+	if !strings.Contains(intExt[0], "INT") && !strings.Contains(intExt[0], "EXT") {
+		column := len(lex.Value) - len(s)
+		Throw(ExpectingFoundErr("INT., EXT., or INT/EXT", intExt[0], lex.LineNumber, column))
+	}
 
 	if len(intExt) > 1 {
 		return INTEXT, Lexeme{Text, s, lex.LineNumber, lex.ColumnNumber}
@@ -152,9 +150,9 @@ func parseSceneContents(lexemes []Lexeme) []SceneItem {
 			var transition Transition
 			transition, lexemes = parseTransition(lexemes)
 			items = append(items, transition)
+		default:
+			Throw(SyntaxErr("Character, Action, Shot, Transition, etc.", lexemes[0].LineNumber, lexemes[0].ColumnNumber))
 		}
-		// consume closing character of whatever scene item was parsed
-		lexemes = lexemes[1:]
 	}
 
 	return items
@@ -162,19 +160,21 @@ func parseSceneContents(lexemes []Lexeme) []SceneItem {
 
 func parseDialogueUnit(lexemes []Lexeme) (DialogueUnit, []Lexeme) {
 	var dUnit DialogueUnit
-	// consume opening equals signs
-	lexemes = lexemes[1:]
-
-	dUnit.Character.Name = lexemes[0].Value
-	if lexemes[1].Typ == LParenthesis {
+	// assert then consume equals then character name
+	assertLexemeTypes(lexemes[:2], []LexemeType{Equals, Text})
+	dUnit.Character.Name = lexemes[1].Value
+	lexemes = lexemes[2:]
+	if lexemes[0].Typ == LParenthesis {
 		dUnit.HasParenthetical = true
-		dUnit.Parenthetical.Value = lexemes[2].Value
-		dUnit.Dialogue.Value = lexemes[5].Value
+		assertLexemeTypes(lexemes[1:], []LexemeType{Text, RParenthesis, LCurlyBracket, Text, RCurlyBracket})
+		dUnit.Parenthetical.Value = lexemes[1].Value
+		dUnit.Dialogue.Value = lexemes[4].Value
 		return dUnit, lexemes[6:]
-	} else if lexemes[1].Typ == LCurlyBracket {
+	} else if lexemes[0].Typ == LCurlyBracket {
 		dUnit.HasParenthetical = false
 		dUnit.Parenthetical.Value = ""
-		dUnit.Dialogue.Value = lexemes[2].Value
+		assertLexemeTypes(lexemes[1:], []LexemeType{Text, RCurlyBracket})
+		dUnit.Dialogue.Value = lexemes[1].Value
 		return dUnit, lexemes[3:]
 	}
 
@@ -182,24 +182,21 @@ func parseDialogueUnit(lexemes []Lexeme) (DialogueUnit, []Lexeme) {
 }
 
 func parseAction(lexemes []Lexeme) (Action, []Lexeme) {
-	// consume opening square bracket
-	lexemes = lexemes[1:]
-	action := Action{Value: lexemes[0].Value}
-	return action, lexemes[1:]
+	assertLexemeTypes(lexemes, []LexemeType{LSquareBracket, Text, RSquareBracket})
+	action := Action{Value: lexemes[1].Value}
+	return action, lexemes[3:]
 }
 
 func parseShot(lexemes []Lexeme) (Shot, []Lexeme) {
-	// consume opening dash
-	lexemes = lexemes[1:]
-	shot := Shot{Value: lexemes[0].Value}
-	return shot, lexemes[1:]
+	assertLexemeTypes(lexemes, []LexemeType{Dash, Text, Dash})
+	shot := Shot{Value: lexemes[1].Value}
+	return shot, lexemes[3:]
 }
 
 func parseTransition(lexemes []Lexeme) (Transition, []Lexeme) {
-	// consue opening plus sign
-	lexemes = lexemes[1:]
-	transition := Transition{Value: lexemes[0].Value}
-	return transition, lexemes[1:]
+	assertLexemeTypes(lexemes, []LexemeType{Plus, Text, Plus})
+	transition := Transition{Value: lexemes[1].Value}
+	return transition, lexemes[3:]
 }
 
 func Parse(contents string) []Lexeme {
